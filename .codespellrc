@@ -1,0 +1,3 @@
+[codespell]
+skip = .git,*.pdf,*.png
+ignore-words-list = javascript,github,wiki,scaffolding,software,engineering
