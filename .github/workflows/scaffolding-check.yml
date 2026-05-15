@@ -1,0 +1,20 @@
+name: 🚀 AI Scaffolding Assistant
+on: [push, pull_request]
+
+jobs:
+  spelling-and-grammar:
+    name: Check Student English
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📝 Spelling Check
+        uses: codespell-project/actions-codespell@v2
+        with:
+          check_filenames: true
+          ignore_words_list: it,dev,wiki # IT terminlarini e'tiborsiz qoldirish
+
+      - name: ✅ Scaffolding Report
+        if: always()
+        run: echo "Scaffolding jarayoni yakunlandi. Talaba xatolarini tekshirishi kerak."
