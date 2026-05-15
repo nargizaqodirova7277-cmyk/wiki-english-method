@@ -3,50 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart-Wiki: Dev-Pedagogy</title>
+    <title>Wiki-English-Method</title>
     <style>
         /* Ilova dizayni (CSS) */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .app-container { background: white; width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; padding: 20px; text-align: center; }
-        .header { margin-bottom: 25px; }
-        .header h1 { font-size: 24px; color: #1a202c; margin: 10px 0 5px; }
-        .header p { color: #718096; font-size: 14px; margin: 0; }
-        .badge { display: inline-block; background: #e2e8f0; color: #4a5568; padding: 5px 10px; border-radius: 15px; font-size: 12px; margin-top: 10px; font-weight: bold; }
-        .menu-btn { display: flex; align-items: center; justify-content: center; background: #3182ce; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: bold; margin-bottom: 15px; transition: transform 0.2s, background 0.2s; }
-        .menu-btn:hover { background: #2b6cb0; transform: translateY(-2px); }
-        .menu-btn.orange { background: #ed8936; }
-        .menu-btn.orange:hover { background: #dd6b20; }
-        .menu-btn.green { background: #38a169; }
-        .menu-btn.green:hover { background: #2f855a; }
-        .footer { margin-top: 30px; font-size: 12px; color: #a0aec0; }
+        .app-container { background: white; width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; padding: 25px 20px; text-align: center; }
+        .header h1 { font-size: 24px; color: #1a202c; margin: 0 0 8px; }
+        .header p { color: #4a5568; font-size: 13px; line-height: 1.5; margin: 0 0 15px; }
+        .badge { display: inline-block; background: #e2e8f0; color: #4a5568; padding: 6px 12px; border-radius: 15px; font-size: 11px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Tugmalar dizayni */
+        .menu-btn { display: flex; align-items: center; justify-content: center; background: #3182ce; color: white; text-decoration: none; padding: 14px; border-radius: 12px; font-weight: bold; margin-bottom: 12px; font-size: 14px; transition: 0.2s; box-shadow: 0 4px 6px rgba(49, 130, 206, 0.2); }
+        .menu-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(49, 130, 206, 0.3); }
+        .btn-orange { background: #ed8936; box-shadow: 0 4px 6px rgba(237, 137, 54, 0.2); }
+        .btn-orange:hover { box-shadow: 0 6px 12px rgba(237, 137, 54, 0.3); }
+        .btn-green { background: #38a169; box-shadow: 0 4px 6px rgba(56, 161, 105, 0.2); }
+        .btn-green:hover { box-shadow: 0 6px 12px rgba(56, 161, 105, 0.3); }
+        
+        /* Ovoz va Qoidalar bloki */
+        .audio-box { text-align: left; background: #f7fafc; padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid #e2e8f0; }
+        .rules-box { text-align: left; background: #fffaf0; padding: 15px; border-radius: 12px; margin-top: 15px; font-size: 12px; color: #744210; border: 1px solid #fbd38d; line-height: 1.6; }
+        .footer { margin-top: 25px; font-size: 11px; color: #a0aec0; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
         <div class="header">
-            <h1>🚀 Smart-Wiki</h1>
-            <p>Dev-Pedagogy Environment</p>
-            <div class="badge">PhD Project</div>
+            <h1>🌐 Wiki-English</h1>
+            <p>Wiki-Based English Learning for<br>Software Engineering Students</p>
+            <div class="badge">Interactive Method</div>
         </div>
 
-        <a href="#" class="menu-btn">📚 O'quv Rejasi va Mashqlar</a>
-        <a href="#" class="menu-btn orange">🧠 142 ta IT-Lakunalar</a>
-        <a href="#" class="menu-btn green">🛠 Wiki-Laboratoriya (Amaliyot)</a>
-
-        <div style="margin-top: 25px; text-align: left; background: #f7fafc; padding: 15px; border-radius: 10px;">
-            <p style="margin: 0 0 10px 0; font-weight: bold; color: #2d3748; font-size: 14px;">🎧 Kunlik Talaffuz</p>
-            <p style="margin: 0; font-size: 14px;">Software Architecture</p>
-            <audio controls style="width: 100%; height: 35px; margin-top: 5px;">
-                <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-                Brauzeringiz audioni qo'llab-quvvatlamaydi.
-            </audio>
-        </div>
-
-        <div class="footer">
-            © 2026 Smart-Wiki by FerPI
-        </div>
-    </div>
-
-</body>
-</html>
+        <a href="#" class="menu-btn">📚 Lesson 1: Importance of IT Skills</a>
+        <a href="#" class="menu-btn btn-orange">📝 Create Page (Name-IT-Skills)</a>
