@@ -1,0 +1,60 @@
+name: "🧩 IT Rebus Answers"
+description: "Submit your answers for the Module 1 Warm-up Rebus"
+title: "Rebus Submission: [Your Name]"
+labels: ["rebus-activity"]
+body:
+  - type: markdown
+    attributes:
+      value: "### 🚀 Welcome to the Warm-up Activity! Fill in your details below."
+  - type: input
+    id: name
+    attributes:
+      label: "👤 Full Name:"
+      placeholder: "e.g., John Doe"
+    validations:
+      required: true
+  - type: input
+    id: group
+    attributes:
+      label: "👥 Academic Group / Team:"
+      placeholder: "e.g., SE-23-01"
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "---"
+  - type: input
+    id: rebus1
+    attributes:
+      label: "🪲 Rebus 1 Answer:"
+      placeholder: "Type answer for Rebus 1..."
+    validations:
+      required: true
+  - type: input
+    id: rebus2
+    attributes:
+      label: "📅 + ⚾ Rebus 2 Answer:"
+      placeholder: "Type answer for Rebus 2..."
+    validations:
+      required: true
+  - type: input
+    id: rebus3
+    attributes:
+      label: "🕸️ + 跑 Rebus 3 Answer:"
+      placeholder: "Type answer for Rebus 3..."
+    validations:
+      required: true
+  - type: input
+    id: rebus4
+    attributes:
+      label: "🧸 + 💻 Rebus 4 Answer:"
+      placeholder: "Type answer for Rebus 4..."
+    validations:
+      required: true
+  - type: input
+    id: rebus5
+    attributes:
+      label: "🔥 + 🧱 Rebus 5 Answer:"
+      placeholder: "Type answer for Rebus 5..."
+    validations:
+      required: true
