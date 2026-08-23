@@ -3,3 +3,6 @@ qa/
 
 # Unused generated design draft
 assets/wiki-3d-background.png
+
+# Python build cache
+__pycache__/
