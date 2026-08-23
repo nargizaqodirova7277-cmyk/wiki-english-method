@@ -19,6 +19,7 @@ jobs:
           python - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
+          from urllib.parse import unquote
 
           class PageCheck(HTMLParser):
               def __init__(self):
@@ -33,13 +34,30 @@ jobs:
                   if tag == "h1": self.h1 += 1
                   if data.get("id"): self.ids.append(data["id"])
 
-          check = PageCheck()
-          check.feed(Path("index.html").read_text(encoding="utf-8"))
-          assert check.h1 == 1, "The page must contain exactly one H1"
-          assert all(check.links), "Every link must have a destination"
-          assert len(check.ids) == len(set(check.ids)), "HTML IDs must be unique"
-          print(f"Validated {len(check.links)} links and {len(check.ids)} IDs")
+          pages = list(Path(".").glob("*.html")) + list(Path("lessons").glob("*.html"))
+          broken = []
+          for page in pages:
+              check = PageCheck()
+              check.feed(page.read_text(encoding="utf-8"))
+              assert check.h1 == 1, f"{page} must contain exactly one H1"
+              assert all(check.links), f"{page} contains an empty link"
+              assert len(check.ids) == len(set(check.ids)), f"{page} contains duplicate IDs"
+              for link in check.links:
+                  target = link.split("#", 1)[0]
+                  if not target or target.startswith(("http://", "https://", "mailto:")):
+                      continue
+                  resolved = (page.parent / unquote(target)).resolve()
+                  if not resolved.exists():
+                      broken.append((str(page), target))
+          assert not broken, f"Broken website links: {broken}"
+          print(f"Validated {len(pages)} HTML pages")
           PY
+
+      - name: Verify generated lesson pages
+        run: |
+          git clone --depth 1 https://github.com/nargizaqodirova7277-cmyk/wiki-english-method.wiki.git wiki-source
+          WIKI_SOURCE=wiki-source python scripts/build_lessons.py
+          git diff --exit-code
 
       - name: Validate Wiki structure
         run: |
