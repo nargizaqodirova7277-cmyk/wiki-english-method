@@ -1,29 +1,42 @@
 /*
- * WIKI ENGLISH — DOM rendering. Builds the learning path, module header,
- * detail panel and results widgets from course-data + a progress object.
+ * WIKI ENGLISH — DOM rendering. Builds the learning path, unit banner,
+ * detail panel and progress read-outs from course-data + a progress object.
  *
- * Safety: all text goes in through textContent / createElement. No innerHTML
- * with dynamic or user-derived strings anywhere in this file.
+ * Safety: every string goes in through textContent / createElement / setAttribute.
+ * No innerHTML anywhere. SVG icons are built with createElementNS (icons.js).
  */
 
-import { COURSE, NODES, KINDS, NAV, GUIDE_LINKS, BADGES, VOCAB, findNode } from './course-data.js';
+import {
+  COURSE, NODES, KINDS, NAV, GUIDE_LINKS, BADGES, VOCAB, findNode, formatDuration,
+} from './course-data.js';
 import {
   computeStates, moduleProgress, xpTotal, streakStatus, weeklyCount, summarise,
 } from './state.js';
+import { svgIcon, svgMark } from './icons.js';
 
 const STATE_LABEL = {
   completed: 'Bajarilgan',
   current: 'Joriy qadam',
   available: 'Ochiq',
-  locked: 'Qulflangan — avvalgi qadamni tugating',
+  locked: 'Qulflangan',
   'revision-needed': 'Qayta ishlash kerak',
 };
-const STATE_ICON = {
-  completed: '✔',
-  current: '▶',
-  available: '→',
-  locked: '🔒',
-  'revision-needed': '↻',
+const STATE_SHORT = {
+  completed: 'Bajarildi',
+  current: 'Joriy',
+  available: 'Ochiq',
+  locked: 'Qulflangan',
+  'revision-needed': 'Qayta ishlash',
+};
+
+/* Uzbek sub-labels shown under each node title / in the detail panel. */
+const KIND_UZ = {
+  objectives: 'Maqsadlar', warmup: 'Warm-up', vocab: 'Texnik lug‘at', audio: 'Audio konsept-xarita',
+  reading: 'O‘qish matni', comprehension: 'Tushunish savollari', language: 'Til qoidasi',
+  tasks: 'Darajali topshiriq', conceptmap: 'Concept map', break: 'Qisqa tanaffus',
+  homework: 'Uyga vazifa', wikiCreate: 'O‘z Wiki sahifangiz', peerFeedback: 'Sherik fikri',
+  revise: 'Qayta tahrir', history: 'Wiki History', speaking: 'Og‘zaki taqdimot',
+  checkpoint: 'Modul nazorati',
 };
 
 function el(tag, opts = {}, children = []) {
@@ -44,18 +57,30 @@ function el(tag, opts = {}, children = []) {
 
 function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
-function estimateMinutes(mod) {
-  // rough, honest: sum of a small per-kind estimate
-  const per = { objectives: 4, warmup: 6, vocab: 12, audio: 8, reading: 10, comprehension: 8,
-    language: 8, tasks: 25, conceptmap: 8, break: 5, homework: 30, wikiCreate: 40,
-    peerFeedback: 20, revise: 25, history: 6, speaking: 15, checkpoint: 5 };
-  return mod.nodes.reduce((sum, n) => sum + (per[n.kind] || 8), 0);
+function moduleMinutes(mod) {
+  return mod.nodes.reduce((sum, n) => sum + (KINDS[n.kind].min || 8), 0);
 }
-function kindMinutes(kind) {
-  const per = { objectives: 4, warmup: 6, vocab: 12, audio: 8, reading: 10, comprehension: 8,
-    language: 8, tasks: 25, conceptmap: 8, break: 5, homework: 30, wikiCreate: 40,
-    peerFeedback: 20, revise: 25, history: 6, speaking: 15, checkpoint: 5 };
-  return per[kind] || 8;
+
+/* ---- browser pronunciation (speechSynthesis), user-triggered only ---- */
+let voiceCache = [];
+const speechOK = typeof window !== 'undefined' && 'speechSynthesis' in window
+  && typeof window.SpeechSynthesisUtterance === 'function';
+if (speechOK) {
+  const load = () => { try { voiceCache = window.speechSynthesis.getVoices() || []; } catch (e) { voiceCache = []; } };
+  load();
+  try { window.speechSynthesis.addEventListener('voiceschanged', load); } catch (e) { /* older engines */ }
+}
+function speak(text) {
+  if (!speechOK) return;
+  try {
+    window.speechSynthesis.cancel();               // stop any previous utterance first
+    const u = new window.SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.95;
+    const en = voiceCache.find((v) => /^en([-_]|$)/i.test(v.lang || ''));
+    if (en) u.voice = en;
+    window.speechSynthesis.speak(u);
+  } catch (e) { /* never throw from a click handler */ }
 }
 
 export function createRenderer(refs, handlers) {
@@ -63,7 +88,6 @@ export function createRenderer(refs, handlers) {
     const node = panel ? refs.livePanel : refs.live;
     if (!node) return;
     node.textContent = '';
-    // force the AT to re-read even for the same string
     window.requestAnimationFrame(() => { node.textContent = msg; });
   }
 
@@ -83,7 +107,7 @@ export function createRenderer(refs, handlers) {
         },
       });
       if (item.kind === 'external') {
-        a.appendChild(el('span', { class: 'we-ext', text: ' ↗', attrs: { 'aria-hidden': 'true' } }));
+        a.appendChild(el('span', { class: 'we-ext', attrs: { 'aria-hidden': 'true' } }, svgMark('arrowUpRight', 'we-svg-xs')));
         a.appendChild(el('span', { class: 'we-sr', text: ' (yangi oynada)' }));
       }
       refs.navList.appendChild(el('li', {}, a));
@@ -93,30 +117,27 @@ export function createRenderer(refs, handlers) {
   function renderModuleHead(progress, modIndex) {
     const mod = COURSE[modIndex];
     const mp = moduleProgress(progress, mod);
-    refs.moduleNum.textContent = 'Modul ' + mod.n + ' / ' + COURSE.length;
-    refs.moduleCount.textContent = mp.done + ' / ' + mp.total + ' qadam';
+    refs.moduleNum.textContent = 'MODUL ' + String(mod.n).padStart(2, '0');
     refs.moduleName.textContent = mod.name;
     refs.moduleGoal.textContent = mod.goal;
     refs.moduleProgress.value = mp.pct;
     refs.moduleProgress.textContent = mp.pct + '%';
-    refs.moduleProgressLabel.textContent = mp.pct + '%';
-    refs.moduleTime.textContent = '~' + estimateMinutes(mod) + ' daqiqa';
+    refs.moduleMeta.textContent = mp.done + ' / ' + mp.total + ' qadam · taxminan ' + formatDuration(moduleMinutes(mod));
 
     clear(refs.moduleDots);
     COURSE.forEach((m, i) => {
       const full = moduleProgress(progress, m).pct === 100;
-      const dot = el('button', {
-        class: 'we-dot' + (i === modIndex ? ' is-active' : '') + (full ? ' is-full' : ''),
+      refs.moduleDots.appendChild(el('button', {
+        class: 'we-chip' + (i === modIndex ? ' is-current' : '') + (full ? ' is-done' : ''),
+        text: String(m.n),
         attrs: {
           type: 'button',
-          'aria-label': 'Modul ' + m.n + (full ? ' (yakunlangan)' : '') + (i === modIndex ? ' (ko‘rilmoqda)' : ''),
           'aria-current': i === modIndex ? 'true' : false,
+          'aria-label': 'Modul ' + m.n + ' — ' + m.name + (full ? ' (yakunlangan)' : '') + (i === modIndex ? ' (ochiq)' : ''),
         },
         on: { click: () => handlers.setModule(i) },
-      });
-      refs.moduleDots.appendChild(dot);
+      }));
     });
-
     refs.prevModuleBtn.disabled = modIndex === 0;
     refs.nextModuleBtn.disabled = modIndex === COURSE.length - 1;
   }
@@ -132,14 +153,16 @@ export function createRenderer(refs, handlers) {
       const kind = KINDS[node.kind];
       const isCurrent = node.id === currentNodeId;
 
-      const icon = el('span', { class: 'we-node-icon', text: kind.icon, attrs: { 'aria-hidden': 'true' } });
-      const title = el('span', { class: 'we-node-title', text: kind.label });
-      const stateText = el('span', { class: 'we-node-state', text: STATE_LABEL[state] });
-      const sub = el('span', { class: 'we-node-kind', text: kindLabelUz(node.kind) });
-      const main = el('span', { class: 'we-node-main' }, [title, sub, stateText]);
-      const xp = kind.xp > 0
-        ? el('span', { class: 'we-node-xp', text: kind.xp + ' XP', attrs: { 'aria-hidden': 'true' } })
-        : el('span', { class: 'we-node-xp we-node-xp-none', text: '—', attrs: { 'aria-hidden': 'true' } });
+      const medal = el('span', { class: 'we-node-medal', attrs: { 'aria-hidden': 'true' } }, svgIcon(node.kind, 'we-svg'));
+      if (state === 'locked') medal.appendChild(el('span', { class: 'we-node-badge' }, svgMark('lock', 'we-svg-xs')));
+      else if (state === 'completed') medal.appendChild(el('span', { class: 'we-node-badge' }, svgMark('check', 'we-svg-xs')));
+      else if (state === 'revision-needed') medal.appendChild(el('span', { class: 'we-node-badge' }, svgMark('redo', 'we-svg-xs')));
+
+      const label = el('span', { class: 'we-node-label' }, [
+        el('span', { class: 'we-node-title', text: kind.label }),
+        el('span', { class: 'we-node-sub', text: KIND_UZ[node.kind] || node.kind }),
+        el('span', { class: 'we-node-pill', text: STATE_SHORT[state] }),
+      ]);
 
       const hintId = 'we-hint-' + node.id;
       const btn = el('a', {
@@ -155,23 +178,30 @@ export function createRenderer(refs, handlers) {
         },
         on: {
           click: (e) => { e.preventDefault(); handlers.activate(node.id); },
-          keydown: (e) => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlers.activate(node.id); }
-          },
+          keydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlers.activate(node.id); } },
         },
-      }, [icon, main, xp]);
+      }, [medal, label]);
 
       const hint = el('span', {
         class: 'we-sr', attrs: { id: hintId },
-        text: 'Modul ' + mod.n + ', ' + (i + 1) + '-qadam (' + mod.nodes.length + ' dan). Holat: ' + STATE_LABEL[state] + '.',
+        text: 'Modul ' + mod.n + ', ' + (i + 1) + '-qadam (' + mod.nodes.length + ' dan). Faoliyat: '
+          + kind.label + '. Holat: ' + STATE_LABEL[state] + '. '
+          + (kind.xp > 0 ? kind.xp + ' XP.' : ''),
       });
 
-      const li = el('li', {
+      refs.path.appendChild(el('li', {
         class: 'we-node',
         attrs: { 'data-node': node.id, 'data-state': state, 'data-kind': node.kind, style: '--i:' + i },
-      }, [btn, hint]);
-      refs.path.appendChild(li);
+      }, [btn, hint]));
     });
+  }
+
+  function ctaLabel(node, state, visited, done) {
+    if (state === 'locked') return null;
+    if (node.external) return 'GitHub Wiki’ni ochish';
+    if (done) return 'Darsni qayta ko‘rish';
+    if (visited) return 'Darsni davom ettirish';
+    return 'Darsni boshlash';
   }
 
   function renderDetail(nodeId, progress) {
@@ -185,29 +215,31 @@ export function createRenderer(refs, handlers) {
 
     const { node, module: mod, index } = entry;
     const kind = KINDS[node.kind];
-    const { states } = computeStates(progress);
-    const state = states.get(node.id);
+    const state = computeStates(progress).states.get(node.id);
     const done = !!progress.completed[node.id];
     const visited = !!progress.visited[node.id];
 
-    refs.detail.appendChild(el('p', { class: 'we-detail-eyebrow', text: 'Modul ' + mod.n + ' · ' + (index + 1) + '/' + mod.nodes.length }));
-    refs.detail.appendChild(el('h2', { class: 'we-detail-title', text: kind.label, attrs: { id: 'we-detail-title', tabindex: '-1' } }));
-    refs.detail.appendChild(el('p', { class: 'we-detail-kind', text: kindLabelUz(node.kind) }));
-
-    const meta = el('ul', { class: 'we-detail-meta' }, [
-      el('li', {}, [el('span', { class: 'we-meta-k', text: 'Holat' }), el('span', { class: 'we-meta-v', text: STATE_LABEL[state] })]),
-      el('li', {}, [el('span', { class: 'we-meta-k', text: 'Taxminiy vaqt' }), el('span', { class: 'we-meta-v', text: '~' + kindMinutes(node.kind) + ' daqiqa' })]),
-      el('li', {}, [el('span', { class: 'we-meta-k', text: 'XP' }), el('span', { class: 'we-meta-v', text: kind.xp > 0 ? String(kind.xp) : 'yo‘q' })]),
+    const head = el('div', { class: 'we-detail-head' }, [
+      el('span', { class: 'we-detail-medal', attrs: { 'data-kind': node.kind, 'aria-hidden': 'true' } }, svgIcon(node.kind, 'we-svg')),
+      el('div', {}, [
+        el('p', { class: 'we-detail-eyebrow', text: 'MODUL ' + String(mod.n).padStart(2, '0') + ' · ' + (index + 1) + '/' + mod.nodes.length }),
+        el('h2', { class: 'we-detail-title', text: kind.label, attrs: { id: 'we-detail-title', tabindex: '-1' } }),
+        el('p', { class: 'we-detail-kind', text: (KIND_UZ[node.kind] || node.kind) + ' · ' + STATE_LABEL[state] }),
+      ]),
     ]);
-    refs.detail.appendChild(meta);
+    refs.detail.appendChild(head);
+
+    refs.detail.appendChild(el('div', { class: 'we-detail-meta' }, [
+      el('span', { class: 'we-tag' }, [el('span', { class: 'we-tag-k', text: 'Vaqt' }), el('span', { text: '~' + kind.min + ' daqiqa' })]),
+      el('span', { class: 'we-tag we-tag-xp' }, [el('span', { class: 'we-tag-k', text: 'XP' }), el('span', { text: kind.xp > 0 ? String(kind.xp) : 'yo‘q' })]),
+    ]));
     refs.detail.appendChild(el('p', { class: 'we-detail-goal', text: node.goal }));
 
-    // level choices for the "levelled tasks" node
     if (node.levels && node.levels.length) {
-      const wrap = el('div', { class: 'we-levels', attrs: { role: 'group', 'aria-label': 'Daraja tanlang' } });
+      const wrap = el('div', { class: 'we-levels', attrs: { role: 'group', 'aria-label': 'Darajani tanlab, darsning shu qismini oching' } });
       for (const lvl of node.levels) {
         wrap.appendChild(el('a', {
-          class: 'we-btn we-btn-ghost we-level',
+          class: 'we-btn we-btn-ghost we-btn-sm',
           text: lvl.label,
           attrs: { href: lvl.href, rel: 'noopener' },
           on: { click: () => handlers.markVisitedOnly(node.id) },
@@ -216,7 +248,6 @@ export function createRenderer(refs, handlers) {
       refs.detail.appendChild(wrap);
     }
 
-    // instructions / rubric / netiquette links
     const links = [];
     if (node.instructionsHref) links.push(['Yo‘riqnoma', node.instructionsHref]);
     if (node.rubricHref) links.push(['Baholash rubrikasi', node.rubricHref]);
@@ -229,59 +260,45 @@ export function createRenderer(refs, handlers) {
       refs.detail.appendChild(ul);
     }
 
-    // primary action
     const actions = el('div', { class: 'we-detail-actions' });
-    const startLabel = node.external
-      ? 'GitHub Wiki’ni ochish ↗'
-      : (visited ? 'Darsni qayta ochish' : (done ? 'Darsni ko‘rish' : 'Darsni boshlash'));
-    const startBtn = el('a', {
-      class: 'we-btn we-btn-primary',
-      text: startLabel,
-      attrs: {
-        href: node.href,
-        rel: 'noopener',
-        target: node.external ? '_blank' : false,
-      },
-      on: { click: () => handlers.start(node.id) },
-    });
-    actions.appendChild(startBtn);
-
-    if (node.kind === 'break') {
-      actions.appendChild(el('button', {
-        class: 'we-btn we-btn-secondary',
-        text: done ? 'Bajarildi ✓' : 'Tanaffusni belgilash',
-        attrs: { type: 'button', disabled: done ? 'true' : false },
-        on: { click: () => handlers.markDone(node.id) },
-      }));
+    const cta = ctaLabel(node, state, visited, done);
+    if (cta) {
+      const startBtn = el('a', {
+        class: 'we-btn we-btn-primary',
+        attrs: { href: node.href, rel: 'noopener', target: node.external ? '_blank' : false },
+        on: { click: () => handlers.start(node.id) },
+      }, [document.createTextNode(cta)]);
+      if (node.external) startBtn.appendChild(el('span', { class: 'we-btn-ic', attrs: { 'aria-hidden': 'true' } }, svgMark('arrowUpRight', 'we-svg-xs')));
+      actions.appendChild(startBtn);
     } else {
-      const gateNeeded = kind.completion === 'visit' && !visited && !done;
+      actions.appendChild(el('p', { class: 'we-detail-note', text: 'Bu qadam hali qulflangan — avvalgi qadamni tugating.' }));
+    }
+
+    const gateNeeded = kind.completion === 'visit' && !visited && !done && state !== 'locked';
+    if (state !== 'locked') {
       const markBtn = el('button', {
-        class: 'we-btn we-btn-secondary',
-        text: done ? 'Bajarildi ✓' : (node.external ? 'Bajardim deb belgilash' : 'Bajardim deb belgilash'),
-        attrs: {
-          type: 'button',
-          disabled: done ? 'true' : false,
-          'aria-describedby': gateNeeded ? 'we-detail-gate' : false,
-        },
+        class: 'we-btn we-btn-secondary' + (done ? ' is-success' : ''),
+        text: done ? 'Bajarildi ✓' : (node.kind === 'break' ? 'Tanaffusni belgilash' : 'Bajardim deb belgilash'),
+        attrs: { type: 'button', disabled: done ? 'true' : false, 'aria-describedby': gateNeeded ? 'we-detail-gate' : false },
         on: { click: () => handlers.markDone(node.id) },
       });
       actions.appendChild(markBtn);
-      if (gateNeeded) {
-        actions.appendChild(el('p', {
-          class: 'we-detail-gate', attrs: { id: 'we-detail-gate' },
-          text: 'Avval “Darsni boshlash”ni bosing — shundan so‘ng bu qadamni belgilash mumkin.',
-        }));
-      }
-      if (node.external) {
-        actions.appendChild(el('p', {
-          class: 'we-detail-note',
-          text: 'Bu qadam GitHub Wiki’da bajariladi. Platforma uni tekshira olmaydi — ishni bajarganingizdan so‘ng belgilang.',
-        }));
-      }
     }
     refs.detail.appendChild(actions);
 
-    // vocabulary flashcards (a real mini-exercise built from the wiki term table)
+    if (gateNeeded) {
+      refs.detail.appendChild(el('p', {
+        class: 'we-detail-gate', attrs: { id: 'we-detail-gate' },
+        text: 'Avval “' + (cta || 'Darsni boshlash') + '”ni bosing — shundan so‘ng bu qadamni belgilash mumkin.',
+      }));
+    }
+    if (node.external) {
+      refs.detail.appendChild(el('p', {
+        class: 'we-detail-note',
+        text: 'Bu qadam GitHub Wiki’da bajariladi. Platforma uni tekshira olmaydi — ishni bajarganingizdan so‘ng belgilang.',
+      }));
+    }
+
     if (node.vocabKey && VOCAB[node.vocabKey]) {
       refs.detail.appendChild(buildFlashcards(VOCAB[node.vocabKey]));
     }
@@ -290,6 +307,9 @@ export function createRenderer(refs, handlers) {
   function buildFlashcards(terms) {
     const box = el('div', { class: 'we-flash', attrs: { 'aria-label': 'Lug‘at kartalari' } });
     box.appendChild(el('p', { class: 'we-flash-head', text: 'Tez mashq: terminni ko‘ring, ma’nosini eslang, keyin oching.' }));
+    if (!speechOK) {
+      box.appendChild(el('p', { class: 'we-flash-note', text: 'Brauzeringiz ovozli talaffuzni qo‘llab-quvvatlamaydi — terminni o‘zingiz ovoz chiqarib o‘qing.' }));
+    }
     const list = el('ul', { class: 'we-flash-list' });
     terms.forEach((t) => {
       const answer = el('span', { class: 'we-flash-a', text: t.definition + ' — ' + t.example, attrs: { hidden: 'true' } });
@@ -305,27 +325,34 @@ export function createRenderer(refs, handlers) {
           },
         },
       });
-      list.appendChild(el('li', {}, [toggle, answer]));
+      const row = el('div', { class: 'we-flash-row' }, [toggle]);
+      if (speechOK) {
+        row.appendChild(el('button', {
+          class: 'we-flash-say',
+          attrs: { type: 'button', 'aria-label': '“' + t.term + '” so‘zini inglizcha talaffuz qilish (brauzer ovozi)' },
+          on: { click: () => speak(t.term) },
+        }, svgMark('speak', 'we-svg-xs')));
+      }
+      list.appendChild(el('li', {}, [row, answer]));
     });
     box.appendChild(list);
     return box;
   }
 
+  /* ---- the "Natijalar" section: full stat grid + badges ---- */
   function renderResults(progress, todayKey) {
     const s = summarise(progress);
     const total = xpTotal(progress);
     const ss = streakStatus(progress, todayKey);
     const week = weeklyCount(progress, todayKey);
-    const modulesDone = s.modulesCompleted;
 
     clear(refs.resultsBody);
-    const grid = el('div', { class: 'we-stat-grid' }, [
-      stat('XP', String(total), 'xp'),
-      stat('Faol kunlar', String(progress.streak.count) + (ss === 'paused' ? ' (to‘xtatilgan)' : ''), 'streak'),
-      stat('Shu hafta', String(week) + ' kun', 'week'),
-      stat('Yakunlangan modul', modulesDone + ' / ' + COURSE.length, 'module'),
-    ]);
-    refs.resultsBody.appendChild(grid);
+    refs.resultsBody.appendChild(el('div', { class: 'we-stat-grid' }, [
+      statCard('XP', String(total), 'xp'),
+      statCard('Faol kunlar', String(progress.streak.count) + (ss === 'paused' ? ' · to‘xtatilgan' : ''), 'streak'),
+      statCard('Shu hafta', week + ' / 7 kun', 'week'),
+      statCard('Yakunlangan modul', s.modulesCompleted + ' / ' + COURSE.length, 'module'),
+    ]));
 
     const badgeWrap = el('div', { class: 'we-badges', attrs: { 'aria-label': 'Nishonlar' } });
     for (const b of BADGES) {
@@ -334,65 +361,55 @@ export function createRenderer(refs, handlers) {
         class: 'we-badge' + (earned ? ' is-earned' : ''),
         attrs: { 'data-earned': earned ? 'true' : 'false' },
       }, [
-        el('span', { class: 'we-badge-icon', text: b.icon, attrs: { 'aria-hidden': 'true' } }),
         el('span', { class: 'we-badge-name', text: b.label }),
-        el('span', { class: 'we-badge-desc', text: earned ? 'Olingan' : b.desc }),
+        el('span', { class: 'we-badge-desc', text: earned ? 'Olingan ✓' : b.desc }),
       ]));
     }
     refs.resultsBody.appendChild(badgeWrap);
 
     refs.resultsBody.appendChild(el('p', {
-      class: 'we-device-note',
+      class: 'we-detail-note',
       text: handlers.isPersistent()
-        ? 'Natijalar shu brauzerda (localStorage) saqlanadi. Hech narsa serverga yuborilmaydi.'
+        ? 'Nishonlar va XP faqat real faoliyatdan keyin beriladi. Peer-feedback qaydi bu qurilmada saqlanmaydi — Wiki sahifangizning Discussion bo‘limini tekshiring.'
         : 'Diqqat: bu brauzerda saqlash o‘chirilgan — natijalar sahifa yopilganda yo‘qoladi.',
     }));
   }
 
-  function stat(label, value, tone) {
+  function statCard(label, value, tone) {
     return el('div', { class: 'we-stat we-stat-' + tone }, [
       el('span', { class: 'we-stat-v', text: value }),
       el('span', { class: 'we-stat-k', text: label }),
     ]);
   }
 
-  function renderWidgets(progress, todayKey) {
+  /* ---- compact stat chips for the right rail ---- */
+  function renderStats(progress, todayKey) {
     const ss = streakStatus(progress, todayKey);
-    clear(refs.widgetStreak);
-    refs.widgetStreak.appendChild(el('span', { class: 'we-widget-v', text: String(progress.streak.count) }));
-    refs.widgetStreak.appendChild(el('span', { class: 'we-widget-k', text: ss === 'paused' ? 'faol kun (to‘xtatilgan)' : (ss === 'none' ? 'faol kun — hali yo‘q' : 'faol kun ketma-ket') }));
-
-    clear(refs.widgetWeek);
-    refs.widgetWeek.appendChild(el('span', { class: 'we-widget-v', text: String(weeklyCount(progress, todayKey)) + '/7' }));
-    refs.widgetWeek.appendChild(el('span', { class: 'we-widget-k', text: 'shu hafta faol kun' }));
-
-    const earned = BADGES.filter((b) => progress.badges[b.id]);
-    clear(refs.widgetBadges);
-    refs.widgetBadges.appendChild(el('span', { class: 'we-widget-v', text: earned.length + '/' + BADGES.length }));
-    refs.widgetBadges.appendChild(el('span', { class: 'we-widget-k', text: earned.length ? earned.map((b) => b.label).join(', ') : 'nishon — hali yo‘q' }));
-
-    clear(refs.widgetFeedback);
-    refs.widgetFeedback.appendChild(el('span', { class: 'we-widget-k', text: 'Bu qurilmada peer-feedback qaydi yo‘q. Sherik fikri Wiki sahifangizning Discussion bo‘limida bo‘ladi.' }));
-    refs.widgetFeedback.appendChild(el('a', { class: 'we-widget-link', text: 'Wiki’ni ochish ↗', attrs: { href: NAV[1].href, target: '_blank', rel: 'noopener' } }));
+    const earned = BADGES.filter((b) => progress.badges[b.id]).length;
+    clear(refs.stats);
+    const chip = (v, k, tone) => el('div', { class: 'we-chipstat we-chipstat-' + tone }, [
+      el('span', { class: 'we-chipstat-v', text: v }),
+      el('span', { class: 'we-chipstat-k', text: k }),
+    ]);
+    refs.stats.appendChild(chip(String(xpTotal(progress)), 'XP', 'xp'));
+    refs.stats.appendChild(chip(String(progress.streak.count) + (ss === 'paused' ? '·' : ''), 'faol kun', 'streak'));
+    refs.stats.appendChild(chip(weeklyCount(progress, todayKey) + '/7', 'shu hafta', 'week'));
+    refs.stats.appendChild(chip(earned + '/' + BADGES.length, 'nishon', 'badge'));
   }
 
-  function flash(msg) {
-    announce(msg);
+  function flash(msg) { announce(msg); }
+
+  function xpPop(gained) {
+    if (!refs.xpLayer || !gained) return;
+    const pop = el('span', { class: 'we-xp-pop', text: '+' + gained + ' XP' });
+    refs.xpLayer.appendChild(pop);
+    setTimeout(() => { pop.remove(); }, 1400);
   }
 
-  return { renderNav, renderModuleHead, renderPath, renderDetail, renderResults, renderWidgets, announce, flash };
-}
-
-/* Uzbek sub-labels shown under each node title. */
-function kindLabelUz(kind) {
   return {
-    objectives: 'Maqsadlar', warmup: 'Warm-up', vocab: 'Texnik lug‘at', audio: 'Audio',
-    reading: 'O‘qish', comprehension: 'Tushunish savollari', language: 'Til qoidasi',
-    tasks: 'Darajali topshiriq', conceptmap: 'Concept map', break: 'Qisqa tanaffus',
-    homework: 'Uyga vazifa', wikiCreate: 'O‘z Wiki sahifangiz', peerFeedback: 'Sherik fikri',
-    revise: 'Qayta tahrir', history: 'Wiki History', speaking: 'Og‘zaki taqdimot',
-    checkpoint: 'Modul nazorati',
-  }[kind] || kind;
+    renderNav, renderModuleHead, renderPath, renderDetail, renderResults, renderStats,
+    announce, flash, xpPop,
+  };
 }
 
-export { STATE_LABEL, STATE_ICON };
+export { STATE_LABEL, GUIDE_LINKS };

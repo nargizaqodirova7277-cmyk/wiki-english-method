@@ -128,3 +128,15 @@ tr:last-child td { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   .we-path-return { transition: none; }
 }
+
+/* Lesson subtitle: the leading descriptive line under the hero <h1>.
+   The generator emits it as a paragraph (not <h3>) so the heading order
+   stays h1 -> h2 -> h3. */
+.lesson .lesson-subtitle {
+  margin: 0 0 26px;
+  color: var(--muted);
+  font: 400 20px/1.4 Georgia, "Times New Roman", serif;
+}
+@media (max-width: 560px) {
+  .lesson .lesson-subtitle { font-size: 17px; }
+}

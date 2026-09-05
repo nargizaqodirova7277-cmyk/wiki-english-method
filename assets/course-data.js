@@ -21,24 +21,34 @@ export const WIKI_NEW = WIKI + '/wiki/_new';
  *   'auto'     — marked complete directly (rest / reflection stops)
  */
 export const KINDS = {
-  objectives:    { label: 'Learning objectives',   short: 'Maqsadlar',       icon: '◆', xp: 5,  completion: 'visit' },
-  warmup:        { label: 'Warm-up',               short: 'Warm-up',         icon: '◇', xp: 5,  completion: 'visit' },
-  vocab:         { label: 'Technical vocabulary',  short: 'Lug‘at',     icon: '▤', xp: 15, completion: 'visit' },
-  audio:         { label: 'Audio concept map',     short: 'Audio',           icon: '♪', xp: 10, completion: 'visit' },
-  reading:       { label: 'Reading',               short: 'O‘qish',     icon: '▥', xp: 15, completion: 'visit' },
-  comprehension: { label: 'Comprehension',         short: 'Tushunish',       icon: '❓', xp: 10, completion: 'visit' },
-  language:      { label: 'Language focus',        short: 'Til qoidasi',     icon: '↔', xp: 10, completion: 'visit' },
-  tasks:         { label: 'Levelled tasks',        short: 'Darajali mashq',  icon: '⬢', xp: 20, completion: 'visit' },
-  conceptmap:    { label: 'Concept map',           short: 'Concept map',     icon: '⬡', xp: 10, completion: 'visit' },
-  break:         { label: 'Short break',           short: 'Tanaffus',        icon: '⏸', xp: 0,  completion: 'auto'  },
-  homework:      { label: 'Homework',              short: 'Uyga vazifa',     icon: '➕', xp: 15, completion: 'visit' },
-  wikiCreate:    { label: 'Create your Wiki page', short: 'Wiki sahifa',     icon: '✎', xp: 30, completion: 'external' },
-  peerFeedback:  { label: 'Peer feedback',         short: 'Sherik fikri',    icon: '⇄', xp: 25, completion: 'external' },
-  revise:        { label: 'Revise after feedback', short: 'Qayta tahrir',    icon: '↻', xp: 20, completion: 'external' },
-  history:       { label: 'See your growth',       short: 'Wiki History',    icon: '⌚', xp: 10, completion: 'external' },
-  speaking:      { label: 'Speaking presentation', short: 'Og‘zaki',    icon: '▸', xp: 20, completion: 'visit' },
-  checkpoint:    { label: 'Module checkpoint',     short: 'Nazorat',         icon: '⚑', xp: 15, completion: 'visit' },
+  objectives:    { label: 'Learning objectives',   short: 'Maqsadlar',      xp: 5,  min: 4,  completion: 'visit' },
+  warmup:        { label: 'Warm-up',               short: 'Warm-up',        xp: 5,  min: 6,  completion: 'visit' },
+  vocab:         { label: 'Technical vocabulary',  short: 'Lug‘at',         xp: 15, min: 12, completion: 'visit' },
+  audio:         { label: 'Audio concept map',     short: 'Audio',          xp: 10, min: 8,  completion: 'visit' },
+  reading:       { label: 'Reading',               short: 'O‘qish',         xp: 15, min: 10, completion: 'visit' },
+  comprehension: { label: 'Comprehension',         short: 'Tushunish',      xp: 10, min: 8,  completion: 'visit' },
+  language:      { label: 'Language focus',        short: 'Til qoidasi',    xp: 10, min: 8,  completion: 'visit' },
+  tasks:         { label: 'Levelled tasks',        short: 'Darajali mashq', xp: 20, min: 25, completion: 'visit' },
+  conceptmap:    { label: 'Concept map',           short: 'Concept map',    xp: 10, min: 8,  completion: 'visit' },
+  break:         { label: 'Short break',           short: 'Tanaffus',       xp: 0,  min: 5,  completion: 'auto'  },
+  homework:      { label: 'Homework',              short: 'Uyga vazifa',    xp: 15, min: 30, completion: 'visit' },
+  wikiCreate:    { label: 'Create your Wiki page', short: 'Wiki sahifa',    xp: 30, min: 40, completion: 'external' },
+  peerFeedback:  { label: 'Peer feedback',         short: 'Sherik fikri',   xp: 25, min: 20, completion: 'external' },
+  revise:        { label: 'Revise after feedback', short: 'Qayta tahrir',   xp: 20, min: 25, completion: 'external' },
+  history:       { label: 'See your growth',       short: 'Wiki History',   xp: 10, min: 6,  completion: 'external' },
+  speaking:      { label: 'Speaking presentation', short: 'Og‘zaki',        xp: 20, min: 15, completion: 'visit' },
+  checkpoint:    { label: 'Module checkpoint',     short: 'Nazorat',        xp: 15, min: 5,  completion: 'visit' },
 };
+
+/* "195" -> "3 soat 15 daqiqa"  ·  "45" -> "45 daqiqa" */
+export function formatDuration(minutes) {
+  const m = Math.max(0, Math.round(minutes));
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  if (h && rem) return `${h} soat ${rem} daqiqa`;
+  if (h) return `${h} soat`;
+  return `${rem} daqiqa`;
+}
 
 /* Left navigation — the five required sections. */
 export const NAV = [

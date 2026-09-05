@@ -1,45 +1,43 @@
 /*
  * WIKI ENGLISH — entry module. Wires the storage adapter, the pure state
  * functions and the DOM renderer together, and owns the interaction model
- * (node activation, the detail sheet, keyboard roving, module switching).
+ * (node activation, the mobile detail sheet, keyboard roving, module switching,
+ * unlock / completion micro-animations, the loading state).
  */
 
 import { COURSE, NODES, findNode } from './course-data.js';
 import { LocalStorageAdapter, createStore } from './storage.js';
 import {
-  emptyProgress, computeStates, activeModule, completeNode, markVisited, dateKey,
+  computeStates, activeModule, completeNode, markVisited, dateKey,
 } from './state.js';
 import { createRenderer } from './render.js';
 
 const $ = (id) => document.getElementById(id);
 const nowIso = () => new Date().toISOString();
 const todayKey = () => dateKey(new Date());
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function boot() {
   const refs = {
     app: $('we-app'),
     navList: $('we-nav-list'),
     moduleNum: $('we-module-num'),
-    moduleCount: $('we-module-count'),
     moduleName: $('we-module-name'),
     moduleGoal: $('we-module-goal'),
     moduleProgress: $('we-module-progress'),
-    moduleProgressLabel: $('we-module-progress-label'),
-    moduleTime: $('we-module-time'),
+    moduleMeta: $('we-module-meta'),
     moduleDots: $('we-module-dots'),
     prevModuleBtn: $('we-prev-module'),
     nextModuleBtn: $('we-next-module'),
     path: $('we-path'),
     detail: $('we-detail'),
     resultsBody: $('we-results-body'),
-    widgetStreak: $('we-widget-streak'),
-    widgetWeek: $('we-widget-week'),
-    widgetBadges: $('we-widget-badges'),
-    widgetFeedback: $('we-widget-feedback'),
+    stats: $('we-stats'),
     side: $('we-side'),
     scrim: $('we-scrim'),
     live: $('we-live'),
     livePanel: $('we-live-panel'),
+    xpLayer: $('we-xp-pop-layer'),
   };
 
   const missing = Object.entries(refs).filter(([, v]) => !v).map(([k]) => k);
@@ -48,15 +46,14 @@ function boot() {
   const adapter = new LocalStorageAdapter();
   const store = createStore(adapter);
 
-  const view = {
-    moduleIndex: 0,
-    selected: null,
-    keyboardActivation: false,
-  };
-  const sheetMq = window.matchMedia('(max-width: 900px)');
+  const view = { moduleIndex: 0, selected: null, keyboardActivation: false, booted: false };
+  const sheetMq = window.matchMedia('(max-width: 960px)');
+  let prevStates = new Map();
+
+  // keep the "how it works" strip out of the way on small screens
+  if (sheetMq.matches) { const how = document.querySelector('.we-how'); if (how) how.open = false; }
 
   const renderer = createRenderer(refs, {
-    // "start" / a level link may navigate away immediately — persist synchronously
     activate: (id) => activate(id),
     start: (id) => store.updateNow((p) => markVisited(p, id, nowIso())),
     markVisitedOnly: (id) => store.updateNow((p) => markVisited(p, id, nowIso())),
@@ -68,40 +65,60 @@ function boot() {
   window.addEventListener('beforeunload', () => { try { store.flush(); } catch (e) { /* ignore */ } });
   window.addEventListener('pagehide', () => { try { store.flush(); } catch (e) { /* ignore */ } });
 
-  /* ---- runtime DOM<->data drift guard ---- */
   const dataIds = new Set(NODES.map((e) => e.node.id));
   if (dataIds.size !== NODES.length) console.warn('WIKI ENGLISH: duplicate node ids in course-data.js');
 
-  function renderAll() {
+  function renderAll(animate = false) {
     const p = store.get();
-    const { current } = computeStates(p);
+    const { current, states } = computeStates(p);
     renderer.renderNav(currentSection());
     renderer.renderModuleHead(p, view.moduleIndex);
     renderer.renderPath(p, view.moduleIndex, current);
     renderer.renderDetail(view.selected, p);
     renderer.renderResults(p, todayKey());
-    renderer.renderWidgets(p, todayKey());
+    renderer.renderStats(p, todayKey());
     syncRovingTabindex();
+    markSelectedNode(view.selected);
+    if (animate) applyTransitions(states);
+    prevStates = states;
+    if (!view.booted) {
+      view.booted = true;
+      refs.app.removeAttribute('data-loading');
+    }
+  }
+
+  /* brief unlock / completion feedback on nodes whose state changed */
+  function applyTransitions(states) {
+    if (reduceMotion.matches) return;
+    for (const li of refs.path.querySelectorAll('.we-node')) {
+      const id = li.dataset.node;
+      const before = prevStates.get(id);
+      const after = states.get(id);
+      if (!before || before === after) continue;
+      let cls = null;
+      if (after === 'completed') cls = 'we-just-completed';
+      else if (before === 'locked' && after !== 'locked') cls = 'we-just-unlocked';
+      if (!cls) continue;
+      li.classList.add(cls);
+      setTimeout(() => li.classList.remove(cls), 1000);
+    }
   }
 
   function setModule(i) {
     view.moduleIndex = Math.max(0, Math.min(COURSE.length - 1, i));
     renderAll();
-    refs.moduleName.focus?.();
+    const banner = $('learning-path');
+    if (banner && banner.focus) banner.focus();
   }
 
   function activate(id) {
     view.selected = id;
     const p = store.get();
-    renderer.renderDetail(id, p);
     const entry = findNode(id);
     if (entry && COURSE.indexOf(entry.module) !== view.moduleIndex) {
       view.moduleIndex = COURSE.indexOf(entry.module);
-      renderer.renderModuleHead(p, view.moduleIndex);
-      renderer.renderPath(p, view.moduleIndex, computeStates(p).current);
-      syncRovingTabindex();
     }
-    markSelectedNode(id);
+    renderAll();
     if (sheetMq.matches) openSheet();
     else if (view.keyboardActivation) focusDetailTitle();
     view.keyboardActivation = false;
@@ -113,14 +130,16 @@ function boot() {
     const p = store.get();
     if (result.error === 'open-lesson-first') {
       renderer.announce('Avval “Darsni boshlash”ni bosing, keyin bu qadamni belgilash mumkin.', true);
-    } else if (result.gained > 0) {
-      const ss = p.streak;
-      renderer.flash('Qadam bajarildi. +' + result.gained + ' XP. Faol kunlar: ' + ss.count + '.');
+      renderAll();
+      return;
+    }
+    if (result.gained > 0) {
+      renderer.flash('Qadam bajarildi. +' + result.gained + ' XP. Faol kunlar: ' + p.streak.count + '.');
+      renderer.xpPop(result.gained);
     } else {
       renderer.announce('Bu qadam allaqachon bajarilgan.', true);
     }
-    renderAll();
-    markSelectedNode(view.selected);
+    renderAll(true);
   }
 
   /* ---- selection highlight + roving tabindex ---- */
@@ -133,8 +152,7 @@ function boot() {
   function syncRovingTabindex() {
     const btns = nodeButtons();
     if (!btns.length) return;
-    const p = store.get();
-    const { current } = computeStates(p);
+    const { current } = computeStates(store.get());
     let idx = btns.findIndex((b) => b.dataset.node === current);
     if (idx < 0) idx = btns.findIndex((b) => b.dataset.node === view.selected);
     if (idx < 0) idx = 0;
@@ -182,7 +200,7 @@ function boot() {
     if (!refs.app.classList.contains('is-sheet-open')) return;
     if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
     if (e.key !== 'Tab') return;
-    const focusables = refs.side.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    const focusables = refs.side.querySelectorAll('a[href], button:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])');
     if (!focusables.length) return;
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
@@ -198,7 +216,7 @@ function boot() {
   refs.prevModuleBtn.addEventListener('click', () => setModule(view.moduleIndex - 1));
   refs.nextModuleBtn.addEventListener('click', () => setModule(view.moduleIndex + 1));
 
-  /* ---- global actions (export / reset) ---- */
+  /* ---- global actions (export / reset / close-sheet) ---- */
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -232,27 +250,26 @@ function boot() {
   }
 
   async function resetProgress() {
-    if (!window.confirm('Barcha natijalar shu qurilmadan o‘chiriladi. Davom etilsinmi?')) return;
+    if (!window.confirm('DIQQAT: barcha XP, faol kunlar, nishonlar va bajarilgan qadamlar shu qurilmadan o‘chiriladi va tiklab bo‘lmaydi. Davom etilsinmi?')) return;
     await store.reset();
     view.selected = null;
     view.moduleIndex = 0;
+    prevStates = new Map();
     renderAll();
     renderer.announce('Natijalar tozalandi.', true);
   }
 
   /* ---- active section tracking for the left nav ---- */
   const sectionIds = ['learning-path', 'jamoa', 'natijalar'];
-  let activeSection = 'learning-path';
+  let activeSection = 'path';
   function currentSection() { return activeSection; }
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver((entries) => {
       for (const en of entries) {
-        if (en.isIntersecting) {
-          activeSection = en.target.id === 'learning-path' ? 'path'
-            : en.target.id === 'jamoa' ? 'team'
-            : 'results';
-          renderer.renderNav(activeSection);
-        }
+        if (!en.isIntersecting) continue;
+        activeSection = en.target.id === 'learning-path' ? 'path'
+          : en.target.id === 'jamoa' ? 'team' : 'results';
+        renderer.renderNav(activeSection);
       }
     }, { rootMargin: '-45% 0px -45% 0px' });
     sectionIds.forEach((id) => { const n = $(id); if (n) io.observe(n); });
@@ -261,10 +278,11 @@ function boot() {
   /* ---- go ---- */
   store.subscribe(() => renderAll());
   store.init().then(() => {
-    view.moduleIndex = COURSE.indexOf(activeModule(store.get()));
-    if (view.moduleIndex < 0) view.moduleIndex = 0;
+    const mod = activeModule(store.get());
+    view.moduleIndex = Math.max(0, COURSE.indexOf(mod));
     const cur = computeStates(store.get()).current;
     view.selected = cur || COURSE[view.moduleIndex].nodes[0].id;
+    prevStates = computeStates(store.get()).states;
     renderAll();
   });
 }

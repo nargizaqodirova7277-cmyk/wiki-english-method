@@ -17,75 +17,67 @@
 <body class="we-body">
   <a class="we-skip-link" href="#learning-path">Asosiy kontentga o‘tish</a>
 
-  <div class="we-app" id="we-app">
+  <div class="we-app" id="we-app" data-loading="true">
 
-    <!-- ================= LEFT NAV ================= -->
+    <!-- ================= LEFT ================= -->
     <header class="we-nav">
       <a class="we-brand" href="index.html">
         <span class="we-brand-mark" aria-hidden="true">WE</span>
-        <span>
-          <span class="we-brand-text">WIKI ENGLISH</span>
-          <span class="we-brand-sub">Wiki Learning Path</span>
-        </span>
+        <span class="we-brand-text">WIKI&nbsp;ENGLISH<span class="we-brand-sub">Wiki Learning Path</span></span>
       </a>
-
-      <nav aria-label="Bo‘limlar">
+      <nav class="we-nav-main" aria-label="Bo‘limlar">
         <ul id="we-nav-list"></ul>
       </nav>
-
-      <div class="we-nav-foot">
-        <p class="we-device-note" id="we-device-note">Natijalar shu qurilmada (localStorage) saqlanadi. Server yo‘q.</p>
-        <button type="button" class="we-btn we-btn-ghost" data-action="export">Natijani yuklab olish (JSON)</button>
-        <label class="we-sr" for="we-export-box">Natija JSON matni</label>
-        <textarea id="we-export-box" readonly hidden></textarea>
-        <button type="button" class="we-btn we-btn-ghost" data-action="reset">Natijani tozalash</button>
-      </div>
+      <p class="we-device-note" id="we-device-note">Progress shu qurilmada saqlanadi.</p>
     </header>
 
     <!-- ================= CENTER ================= -->
     <main class="we-main">
       <h1 class="we-h1">WIKI ENGLISH — o‘quv yo‘li</h1>
-      <p class="we-tagline">Software Engineering talabalari uchun kasbiy ingliz tili. 12 modul · 3 daraja · har modul markazida — o‘z Wiki sahifangiz.</p>
 
-      <ul class="we-method" aria-label="Metodika bosqichlari">
-        <li><b>1 · Tayyorgarlik</b> Maqsad, lug‘at, o‘qish va til qoidasi.</li>
-        <li><b>2 · Wiki sahifa</b> «Ism-Module-N» sahifasida mustaqil matn.</li>
-        <li><b>3 · Sherik fikri → qayta tahrir</b> Rubrika asosida feedback, so‘ng reviziya.</li>
-        <li><b>4 · History → og‘zaki taqdimot</b> O‘sishni ko‘rsatib, og‘zaki himoya.</li>
-      </ul>
+      <details class="we-how" open>
+        <summary class="we-how-strip">
+          <b>Qanday ishlaydi?</b>
+          <span class="we-how-flow">O‘rganish → Wiki yaratish → Fikr olish va tahrirlash → Taqdimot</span>
+        </summary>
+        <ol class="we-how-body">
+          <li><b>O‘rganish.</b> Maqsad, lug‘at, o‘qish/eshitish va til qoidasi.</li>
+          <li><b>Wiki yaratish.</b> «Ism-Module-N» sahifasida mustaqil matn yozasiz.</li>
+          <li><b>Fikr olish va tahrirlash.</b> Rubrika asosida sherik fikri, so‘ng qayta tahrir.</li>
+          <li><b>Taqdimot.</b> Wiki History’da o‘sishni ko‘rsatib, og‘zaki himoya qilasiz.</li>
+        </ol>
+      </details>
 
-      <section class="we-module-head" id="learning-path" aria-labelledby="we-module-name" tabindex="-1">
-        <p class="we-eyebrow"><span id="we-module-num">Modul 1</span></p>
-        <h2 id="we-module-name">&nbsp;</h2>
-        <p class="we-module-goal" id="we-module-goal">&nbsp;</p>
-        <div class="we-progress-row">
+      <section class="we-banner" id="learning-path" tabindex="-1" aria-labelledby="we-module-name">
+        <p class="we-banner-num" id="we-module-num">MODUL 01</p>
+        <h2 class="we-banner-name" id="we-module-name" data-skeleton>&nbsp;</h2>
+        <p class="we-banner-goal" id="we-module-goal" data-skeleton>&nbsp;</p>
+        <div class="we-banner-progress">
           <progress id="we-module-progress" max="100" value="0" aria-label="Modul bo‘yicha bajarilgan qadamlar ulushi">0%</progress>
-          <span id="we-module-progress-label">0%</span>
-          <span class="we-module-time" id="we-module-time"></span>
+          <span class="we-banner-meta" id="we-module-meta" data-skeleton>&nbsp;</span>
         </div>
-        <p class="we-eyebrow" style="text-transform:none;color:var(--we-muted);font-weight:600"><span id="we-module-count">0 / 0 qadam</span></p>
-        <div class="we-module-switch">
-          <button type="button" id="we-prev-module" aria-label="Oldingi modul">&#8249;</button>
-          <span class="we-module-dots" id="we-module-dots" role="group" aria-label="Modullar"></span>
-          <button type="button" id="we-next-module" aria-label="Keyingi modul">&#8250;</button>
+        <div class="we-selector">
+          <button type="button" id="we-prev-module" class="we-selector-arrow" aria-label="Oldingi modul">&#8249;</button>
+          <div class="we-selector-track" id="we-module-dots" role="group" aria-label="Modul tanlash"></div>
+          <button type="button" id="we-next-module" class="we-selector-arrow" aria-label="Keyingi modul">&#8250;</button>
         </div>
       </section>
 
       <ol class="we-path" id="we-path" aria-label="O‘quv yo‘li"></ol>
 
-      <p class="we-legend" aria-hidden="true">
-        <span><i class="li-completed"></i> ✔ Bajarilgan</span>
-        <span><i class="li-current"></i> ▶ Joriy</span>
-        <span><i class="li-available"></i> → Ochiq</span>
-        <span><i class="li-locked"></i> 🔒 Qulflangan</span>
-        <span><i class="li-revision"></i> ↻ Qayta ishlash</span>
-      </p>
+      <ul class="we-legend" aria-label="Belgilar">
+        <li><span class="we-legend-dot" data-state="completed"></span> Bajarilgan</li>
+        <li><span class="we-legend-dot" data-state="current"></span> Joriy</li>
+        <li><span class="we-legend-dot" data-state="available"></span> Ochiq</li>
+        <li><span class="we-legend-dot" data-state="locked"></span> Qulflangan</li>
+        <li><span class="we-legend-dot" data-state="revision-needed"></span> Qayta ishlash</li>
+      </ul>
 
       <noscript>
         <div class="we-section">
           <h2>JavaScriptsiz ko‘rinish</h2>
-          <p>Interaktiv o‘quv yo‘li JavaScript bilan ishlaydi. U yoqilmagan bo‘lsa, barcha
-          darslar bilan quyidagi sahifalar orqali tanishing:</p>
+          <p>Interaktiv o‘quv yo‘li JavaScript bilan ishlaydi. U yoqilmagan bo‘lsa ham,
+          barcha 12 modul va darslar quyidagi sahifalar orqali ochiladi:</p>
           <ul>
             <li><a href="lessons/index.html">12 ta modul ro‘yxati (katalog)</a></li>
             <li><a href="lessons/How-to-Work.html">Ishlash tartibi — 5 qadam</a></li>
@@ -105,12 +97,13 @@
         Har bir fikrda kim yozgani va vaqti ko‘rinadi, va u
         <a href="lessons/Assessment.html">baholash rubrikasi</a> bandlariga bog‘lanadi.</p>
         <p>Muloqot <a href="lessons/Platform-Rules.html">netiket qoidalariga</a> muvofiq — hurmatli,
-        aniq va foydali bo‘lishi kerak. To‘liq tartib:
-        <a href="lessons/How-to-Work.html">Qanday ishlaymiz?</a></p>
+        aniq va foydali bo‘lishi kerak. AI topshiriqni siz o‘rningizga to‘liq yozib bermasligi kerak.
+        To‘liq tartib: <a href="lessons/How-to-Work.html">Qanday ishlaymiz?</a></p>
         <p><strong>Eslatma:</strong> bu platformada guruh ro‘yxati yoki o‘qituvchi statistikasi yo‘q —
         hamkorlik to‘g‘ridan-to‘g‘ri GitHub Wiki va Discussion orqali kechadi.</p>
         <p><a href="lessons/Learning-Focus.html">O‘quv yo‘nalishlari</a> ·
-        <a href="lessons/AI-Scaffolding.html">Mas’uliyatli raqamli yordam</a></p>
+        <a href="lessons/AI-Scaffolding.html">Mas’uliyatli raqamli yordam</a> ·
+        <a href="https://github.com/nargizaqodirova7277-cmyk/wiki-english-method/wiki" target="_blank" rel="noopener">GitHub Wiki ↗</a></p>
       </section>
 
       <section class="we-section" id="natijalar" tabindex="-1" aria-labelledby="we-natijalar-h">
@@ -118,25 +111,32 @@
         <p>XP, faol kunlar va nishonlar — <strong>faqat real faoliyatdan</strong> keyin. Sahifani
         shunchaki ochish streak bermaydi; bir qadamni qayta bosish qo‘shimcha XP bermaydi.</p>
         <div id="we-results-body"></div>
+
+        <details class="we-settings">
+          <summary>Progress sozlamalari</summary>
+          <div class="we-settings-body">
+            <p class="we-detail-note">Natijalar shu brauzerda (localStorage) saqlanadi. Server yo‘q, hech narsa yuborilmaydi.</p>
+            <button type="button" class="we-btn we-btn-ghost we-btn-sm" data-action="export">Natijani yuklab olish (JSON)</button>
+            <label class="we-sr" for="we-export-box">Natija JSON matni — nusxa olish uchun</label>
+            <textarea id="we-export-box" readonly hidden rows="5"></textarea>
+            <button type="button" class="we-btn we-btn-danger we-btn-sm" data-action="reset">Natijani tozalash…</button>
+          </div>
+        </details>
       </section>
     </main>
 
-    <!-- ================= RIGHT PANEL / MOBILE SHEET ================= -->
-    <aside class="we-side" id="we-side" aria-label="Joriy dars va natijalar">
-      <button type="button" class="we-btn we-btn-ghost we-sheet-close" data-action="close-sheet">Yopish</button>
+    <!-- ================= RIGHT / MOBILE SHEET ================= -->
+    <aside class="we-side" id="we-side" aria-label="Joriy dars">
+      <button type="button" class="we-btn we-btn-ghost we-btn-sm we-sheet-close" data-action="close-sheet">Yopish</button>
       <section class="we-detail" id="we-detail" role="region" aria-label="Dars tafsiloti">
         <p class="we-detail-empty">Yo‘ldagi biror qadamni tanlang.</p>
       </section>
-      <div class="we-widgets" aria-label="Natijalar qisqacha">
-        <div id="we-widget-streak"></div>
-        <div id="we-widget-week"></div>
-        <div id="we-widget-badges"></div>
-        <div id="we-widget-feedback"></div>
-      </div>
+      <div class="we-stats" id="we-stats" aria-label="Qisqacha natijalar"></div>
     </aside>
   </div>
 
   <div class="we-scrim" id="we-scrim" hidden></div>
+  <div class="we-xp-pop-layer" id="we-xp-pop-layer" aria-hidden="true"></div>
 
   <p class="we-sr" id="we-live" aria-live="polite" role="status"></p>
   <p class="we-sr" id="we-live-panel" aria-live="polite"></p>

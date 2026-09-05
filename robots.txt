@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nargizaqodirova7277-cmyk.github.io/wiki-english-method/sitemap.xml
