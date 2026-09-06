@@ -108,3 +108,35 @@ tr:last-child td { border-bottom: 0; }
   .pager .button, .pager .next { width: 100%; justify-self: stretch; }
   .footer-row { min-height: 96px; flex-direction: column; align-items: flex-start; justify-content: center; }
 }
+
+/* ==========================================================================
+   WIKI ENGLISH — appended, additive only. Nothing above this line is changed.
+   A "back to your learning path" bar is injected by course.js on lesson pages;
+   these rules style it. No existing selector is redefined, so every generated
+   lesson page renders exactly as before.
+   ========================================================================== */
+.we-path-return {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; padding: 9px clamp(16px, 4vw, 40px);
+  background: #ecebfb;
+  border-bottom: 2px solid #4c3fbf;
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: 13px; font-weight: 700;
+}
+.we-path-return a { color: #372e9e; text-decoration: none; }
+.we-path-return a:hover, .we-path-return a:focus-visible { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) {
+  .we-path-return { transition: none; }
+}
+
+/* Lesson subtitle: the leading descriptive line under the hero <h1>.
+   The generator emits it as a paragraph (not <h3>) so the heading order
+   stays h1 -> h2 -> h3. */
+.lesson .lesson-subtitle {
+  margin: 0 0 26px;
+  color: var(--muted);
+  font: 400 20px/1.4 Georgia, "Times New Roman", serif;
+}
+@media (max-width: 560px) {
+  .lesson .lesson-subtitle { font-size: 17px; }
+}
